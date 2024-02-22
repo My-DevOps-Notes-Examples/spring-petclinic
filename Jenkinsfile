@@ -13,6 +13,13 @@ pipeline {
                 sh 'mvn package'
             }
         }
+        stage('Sonar-Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                sh 'mvn clean package sonar:sonar -Dsonar.organization=jenkinswithsonar -Dsonar.projectKey=jenkinswithsonar'
+              }
+            }
+        }
         stage('Post-Build') {
             steps {
                 archiveArtifacts artifacts: '**/target/*.jar',
