@@ -8,9 +8,32 @@ pipeline {
                     branch: 'declarative'
             }
         }
-        stage('Build') {
+        stage ('Artifactory configuration') {
             steps {
-                sh 'mvn package'
+                rtMavenDeployer (
+                    id: "MAVEN_DEPLOYER",
+                    serverId: "Jfrog_Cloud",
+                    releaseRepo: 'spring-pet-clinic-libs-release', // Repository Name
+                    snapshotRepo: 'spring-pet-clinic-libs-snapshot' // Repository Name
+                )
+
+                rtMavenResolver (
+                    id: "MAVEN_RESOLVER",
+                    serverId: "Jfrog_Cloud",
+                    releaseRepo: 'spring-pet-clinic-libs-release', // Repository Name
+                    snapshotRepo: 'spring-pet-clinic-libs-snapshot' // Repository Name
+                )
+            }
+        }
+        stage ('Package') {
+            steps {
+                rtMavenRun (
+                    tool: 'Maven_Default', // Tool name from Jenkins configuration
+                    pom: 'pom.xml',
+                    goals: 'clean install',
+                    deployerId: "MAVEN_DEPLOYER",
+                    resolverId: "MAVEN_RESOLVER"
+                )
             }
         }
         stage('Sonar-Analysis') {
@@ -27,6 +50,9 @@ pipeline {
                          onlyIfSuccessful: true
                 junit testResults: '**/surefire-reports/TEST-*.xml',
                       allowEmptyResults: false
+                rtPublishBuildInfo (
+                    serverId: "Jfrog_Cloud"
+                )
             }
         }
     }
